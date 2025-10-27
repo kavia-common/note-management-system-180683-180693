@@ -1,4 +1,5 @@
 from typing import List, Optional
+import os
 
 from fastapi import FastAPI, Depends, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,7 +11,7 @@ from src.db.database import Base, engine, get_db  # noqa: F401
 from src.db import models
 from src.db.schemas import NoteCreate, NoteOut, NoteUpdate
 
-# Load environment variables (DATABASE_URL, etc.)
+# Load environment variables (DATABASE_URL, FRONTEND_ORIGIN, etc.)
 load_dotenv()
 
 app = FastAPI(
@@ -23,10 +24,18 @@ app = FastAPI(
     ],
 )
 
-# Keep CORS enabled
+# Configure CORS based on environment variable FRONTEND_ORIGIN.
+# - If FRONTEND_ORIGIN is set to a comma-separated list, split into array.
+# - Fallback to "*" to allow any origin in local/dev environments.
+frontend_origin_env = os.getenv("FRONTEND_ORIGIN", "*").strip()
+if frontend_origin_env == "*" or frontend_origin_env == "":
+    allow_origins = ["*"]
+else:
+    allow_origins = [o.strip() for o in frontend_origin_env.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Consider restricting in production
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
